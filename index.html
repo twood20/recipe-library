@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#FAF7F2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Recipe Library</title>
+  <meta name="description" content="A personal collection of saved recipes, scaled to any table size.">
+
+  <!-- Open Graph / link preview metadata for sharing on phones -->
+  <meta property="og:title" content="Personal Recipe Library">
+  <meta property="og:description" content="Browse saved recipes, search fast, and scale ingredient quantities on the fly.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="photos/glazed-chicken-skillet.jpg">
+
+  <!-- Inline warm terracotta recipe card favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23B8431E'/%3E%3Cpath d='M19 18h26a3 3 0 0 1 3 3v24a5 5 0 0 1-5 5H21a5 5 0 0 1-5-5V21a3 3 0 0 1 3-3zm4 9h18m-18 8h18m-18 8h11' stroke='%23FAF7F2' stroke-width='3.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+
+  <!-- Editorial serif + clean humanist sans-serif with graceful system fallbacks -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- ======================== HOME / BROWSE VIEW ======================== -->
+  <div id="library-view" class="library-view">
+    <header class="site-header">
+      <div class="container header-inner">
+        <div class="brand-block">
+          <p class="eyebrow">Personal Cookbook</p>
+          <h1 class="site-title">Recipe Library</h1>
+        </div>
+        <p id="recipe-count-label" class="recipe-count-label" aria-live="polite"></p>
+      </div>
+    </header>
+
+    <div class="search-bar-sticky">
+      <div class="container">
+        <div class="search-field-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7.5"></circle>
+            <path d="m20 20-3.8-3.8"></path>
+          </svg>
+          <input
+            id="search-input"
+            class="search-input"
+            type="search"
+            placeholder="Search recipes…"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            enterkeyhint="search"
+            aria-label="Search recipes by title or subtitle"
+          >
+          <button
+            id="search-clear"
+            class="search-clear"
+            type="button"
+            aria-label="Clear search"
+            hidden
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <main class="container main-content" id="main-content">
+      <div id="loading-state" class="status-panel">
+        <p class="status-title">Opening recipe library…</p>
+      </div>
+
+      <div id="error-state" class="status-panel status-error" hidden>
+        <p class="status-title">Couldn’t load recipes.json</p>
+        <p class="status-body">Make sure you’re opening the site over a local or web server (for example <code>python3 -m http.server 8000</code>) rather than a <code>file://</code> path.</p>
+      </div>
+
+      <div id="empty-state" class="status-panel" hidden>
+        <p class="status-title">No matching recipes</p>
+        <p id="empty-state-body" class="status-body">Try a different keyword or clear the search filter.</p>
+        <button id="empty-clear-btn" class="btn-secondary" type="button">Clear search</button>
+      </div>
+
+      <div id="recipe-grid" class="recipe-grid" role="list"></div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <div class="footer-actions">
+          <button id="update-recipes-btn" class="footer-btn" type="button">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10 13V3m0 0L6.5 6.5M10 3l3.5 3.5M3.5 13.5v2a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5v-2"/>
+            </svg>
+            Update recipes
+          </button>
+          <button id="export-library-btn" class="footer-btn" type="button">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M10 3v10m0 0-3.5-3.5M10 13l3.5-3.5M3.5 13.5v2a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5v-2"/>
+            </svg>
+            Export library
+          </button>
+          <button id="reset-imports-btn" class="footer-btn footer-btn-subtle" type="button" hidden>
+            Reset device updates
+          </button>
+          <input
+            id="import-file-input"
+            type="file"
+            accept=".json,application/json"
+            hidden
+          >
+        </div>
+
+        <p id="import-status-line" class="import-status-line" role="status" aria-live="polite" hidden></p>
+
+        <p class="footer-note">
+          Recipe updates imported here are saved to this browser and apply on this device. To update the shared library for everyone, export the library and replace the hosted <code>recipes.json</code> file.
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ======================== FULL RECIPE VIEW ======================== -->
+  <article id="recipe-view" class="recipe-view" hidden>
+    <div class="recipe-topbar">
+      <div class="container recipe-topbar-inner">
+        <button id="back-btn" class="back-btn" type="button">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12.5 15 7.5 10l5-5"/>
+          </svg>
+          <span>Recipes</span>
+        </button>
+
+        <span id="topbar-recipe-title" class="topbar-recipe-title" aria-hidden="true"></span>
+
+        <div class="topbar-actions">
+          <button id="wake-lock-btn" class="icon-pill-btn" type="button" hidden aria-pressed="false" title="Keep screen awake while cooking">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="10" cy="10" r="3.5"></circle>
+              <path d="M10 2.5v2m0 11v2M2.5 10h2m11 0h2m-12.8-5.3 1.4 1.4m7.8 7.8 1.4 1.4m0-10.6-1.4 1.4m-7.8 7.8-1.4 1.4"/>
+            </svg>
+            <span class="pill-label">Keep awake</span>
+          </button>
+          <button id="share-recipe-btn" class="icon-pill-btn" type="button" aria-label="Share recipe link">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M7.5 10h5m-1.5-4.5h2a3.5 3.5 0 0 1 0 7h-2m-2 0h-2a3.5 3.5 0 0 1 0-7h2"/>
+            </svg>
+            <span class="pill-label">Share</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="container recipe-detail-container">
+      <div id="recipe-hero-media" class="recipe-hero-media"></div>
+
+      <header class="recipe-header">
+        <div id="recipe-badges" class="recipe-badges" hidden>
+          <span class="badge-partial">Partial</span>
+        </div>
+        <h1 id="recipe-title" class="recipe-detail-title"></h1>
+        <p id="recipe-subtitle" class="recipe-detail-subtitle"></p>
+      </header>
+
+      <section id="scaler-bar" class="scaler-bar" aria-label="Servings scaler">
+        <div class="scaler-meta">
+          <span class="scaler-label">Servings</span>
+          <button id="scaler-reset-btn" class="scaler-reset-btn" type="button" hidden>
+            Reset
+          </button>
+        </div>
+        <div class="scaler-stepper">
+          <button id="servings-minus" class="stepper-btn" type="button" aria-label="Decrease servings">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+              <path d="M5 10h10"/>
+            </svg>
+          </button>
+          <output id="servings-value" class="servings-value" aria-live="polite">2</output>
+          <button id="servings-plus" class="stepper-btn" type="button" aria-label="Increase servings">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+              <path d="M10 5v10M5 10h10"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <div class="recipe-columns">
+        <section id="ingredients-section" class="recipe-section ingredients-section">
+          <div class="section-heading-row">
+            <h2 class="section-heading">Ingredients</h2>
+            <span id="scaled-indicator" class="scaled-indicator" hidden></span>
+          </div>
+          <div id="ingredients-container" class="ingredients-container"></div>
+        </section>
+
+        <div class="directions-column">
+          <section id="steps-section" class="recipe-section steps-section">
+            <h2 class="section-heading">Preparation</h2>
+            <ol id="steps-list" class="steps-list"></ol>
+          </section>
+
+          <section id="notes-section" class="recipe-section notes-section" hidden>
+            <h2 class="section-heading">Notes</h2>
+            <div id="notes-body" class="notes-body"></div>
+          </section>
+
+          <div id="source-section" class="source-section" hidden>
+            <a id="source-link" class="source-link" href="#" target="_blank" rel="noopener noreferrer">
+              <span>View original recipe</span>
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 14 14 6m0 0H7.5M14 6v6.5"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
